@@ -12,3 +12,5 @@
 # Date: 24.05.2022
 
 import vtk
+
+# Map creation
