@@ -103,11 +103,24 @@ def extract_datas(lat_start, lat_end, lon_start, lon_end, nb_rows, nb_cols, bil_
     return elevations, latitudes_vector, longitudes_vector
 
 
+def extract_plane_datas(filename):
+    with open(filename) as file:
+        nb_coords = int(file.readline())
+
+        coordinates = []
+
+        for line in file.readlines():
+            coords = line.split()
+            coordinates.append((int(coords[1]), int(coords[2]), float(coords[3])))
+
+    return int(nb_coords), coordinates
+
+
 def make_terrain_actor():
-    '''
+    """
     This function create the terrain actor. The are around the lake of Ottsjön.
     :return: Returns the corresponding vtkActor.
-    '''
+    """
 
     # WSG84 map corners: 0:  bottom left, 1: bottom right, 2: top right, 3: top left
     WSG84_CORNERS = np.array([
@@ -187,9 +200,56 @@ def make_terrain_actor():
     return terrain_actor
 
 
+def make_plane_path_actor():
+    """
+    This function create the plane gps path actor
+    :return: Return the corresponding vtkActor
+    """
+    nb_coords, coords = extract_plane_datas('vtkgps.txt')
+    path_points = vtk.vtkPoints()
+
+    delta_elevations = vtk.vtkFloatArray()
+
+    last_elev = coords[0][2]
+
+    for i, (x, y, elev) in enumerate(coords):
+        lat, long = convert_rt90_wgs84(x, y)
+        path_points.InsertNextPoint(to_vtkPoint(elev, lat, long))
+
+        delta_elevations.InsertNextValue(last_elev - elev)
+        last_elev = elev
+
+
+
+    path_lines = vtk.vtkLineSource()
+
+    path_lines.SetPoints(path_points)
+    path_lines.Update()
+
+    # Settings scalars to the generated polydata
+    polydata = path_lines.GetOutput()
+    polydata.GetPointData().SetScalars(delta_elevations)
+
+    # To have something nice to display
+    tube = vtk.vtkTubeFilter()
+    tube.SetRadius(25)
+    tube.SetInputConnection(path_lines.GetOutputPort())
+
+    mapper = vtk.vtkPolyDataMapper()
+    mapper.SetInputConnection(tube.GetOutputPort())
+    mapper.SetScalarRange((-5, 5))
+
+    actor = vtk.vtkActor()
+    actor.SetMapper(mapper)
+
+    return actor
+
+
 # --------- Render ---------
 renderer = vtk.vtkRenderer()
 renderer.AddActor(make_terrain_actor())
+renderer.AddActor(make_plane_path_actor())
+
 
 renWin = vtk.vtkRenderWindow()
 renWin.AddRenderer(renderer)
