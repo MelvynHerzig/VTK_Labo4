@@ -2,10 +2,10 @@
 #
 # Labo 4 from VTK.
 #
-# File goal: This file aims to provide functions to generate the terrain.
-#             For instance, it creates the terrain actors and apply its texture.
+# File goal: This file aims to provide functions to generate the terrain and the glider path.
 #             In addition, it provides useful utility functions like the possibility
-#             to convert a set of points from RT90 to WGS84 coordinates.
+#             to convert a set of points from RT90 to WGS84 coordinates or a geographical coordinate
+#             into a vtkPoint.
 #
 # Authors: Forestier Quentin & Herzig Melvyn
 #
@@ -47,7 +47,7 @@ def convert_rt90_wgs84(x, y):
     return convert_rt90_wgs84.transformer.transform(y, x)
 
 
-# Attribute of convertRT90ToWGS84 function to make coordinates conversion.
+# Attribute of convert_rt90_wgs84 function to make coordinates conversion.
 convert_rt90_wgs84.transformer = Transformer.from_crs('epsg:3021', 'epsg:4326')
 
 
@@ -77,11 +77,6 @@ def quadrilateral_interpolation(x, y, a, b):
     return l, m
 
 
-# Attribute of convertRT90ToWGS84 function to make coordinates conversion used in
-# https://pyproj4.github.io/pyproj/stable/gotchas.html#upgrading-to-pyproj-2-from-pyproj-1
-convert_rt90_wgs84.transformer = Transformer.from_crs('epsg:3021', 'epsg:4326')
-
-
 def extract_datas(lat_start, lat_end, lon_start, lon_end, nb_rows, nb_cols, bil_file):
     """
     Extracts the elevations from the bil file in argument. Reshape it into 2d in regard to nb_row and nb_col. Finally,
@@ -94,7 +89,7 @@ def extract_datas(lat_start, lat_end, lon_start, lon_end, nb_rows, nb_cols, bil_
     :param nb_rows: Row count when resizing the elevations array into 2d.
     :param nb_cols: Column count when resizing the elevations array into 2d.
     :param bil_file: bil file name.
-    :return: A tuple that contain the 2d array of elevations, the vector of latitudes and the vector of longitudes.
+    :return: Returns the 2d array of elevations, the vector of latitudes and the vector of longitudes.
     """
 
     # Gets the elevations from the bil file as a big array from 6000 * 6000 elevations.
@@ -108,7 +103,12 @@ def extract_datas(lat_start, lat_end, lon_start, lon_end, nb_rows, nb_cols, bil_
     return elevations, latitudes_vector, longitudes_vector
 
 
-def make_terrain():
+def make_terrain_actor():
+    '''
+    This function create the terrain actor. The are around the lake of Ottsjön.
+    :return: Returns the corresponding vtkActor.
+    '''
+
     # WSG84 map corners: 0:  bottom left, 1: bottom right, 2: top right, 3: top left
     WSG84_CORNERS = np.array([
         convert_rt90_wgs84(1349602, 7005969),
@@ -125,6 +125,7 @@ def make_terrain():
     INTERPOLATION_ALPHAS = INTERPOLATION_MATRIX.dot(WSG84_CORNERS[:, 0])
     INTERPOLATION_BETAS = INTERPOLATION_MATRIX.dot(WSG84_CORNERS[:, 1])
 
+    # Limits to get the bounding box of the map area.
     smallest_latitude = WSG84_CORNERS[:, 0].min()
     biggest_latitude = WSG84_CORNERS[:, 0].max()
     smallest_longitude = WSG84_CORNERS[:, 1].min()
@@ -153,7 +154,7 @@ def make_terrain():
                     if rows == 1:
                         cols += 1
 
-                    # At this point, the lat, long pair is inside the bouding box of the zone to display
+                    # At this point, the lat, long pair is inside the bouding box of the zone to display,
                     # so we add it to the structured grid.
                     xyz_points.InsertNextPoint(to_vtkPoint(altitude, latitudes[i], longitudes[j]))
                     elevation_points.InsertNextValue(altitude)
@@ -188,7 +189,7 @@ def make_terrain():
 
 # --------- Render ---------
 renderer = vtk.vtkRenderer()
-renderer.AddActor(make_terrain())
+renderer.AddActor(make_terrain_actor())
 
 renWin = vtk.vtkRenderWindow()
 renWin.AddRenderer(renderer)
