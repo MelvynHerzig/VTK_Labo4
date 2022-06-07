@@ -16,33 +16,13 @@ import numpy as np
 from pyproj import Transformer
 import vtk
 
-# Constante file
-VTK_PLANE_GPS = "vtkgps.txt"
-TEXTURE_IMG = "glider_map.jpg"
-VTK_MAP = "EarthEnv-DEM90_N60E010.bil"
-
-# Constante MAP
-DEGREE = 5
-MIN_LAT = 60
-MIN_LONG = 10
-MAX_LAT = MIN_LAT + DEGREE
-MAX_LONG = MIN_LONG + DEGREE
-R_EARTH  = 6371009
-MAP_WIDTH = 6000
-delta_degree = DEGREE / MAP_WIDTH
-
-# Window parameters (with/height)
-WINDOW_WIDTH_SIZE = 1000
-WINDOW_HEIGTH_SIZE = 1000
-
-
 def to_vtkPoint(elevation, latitude, longitude):
     """
     Converts a geographical coordinate into a vtk point.
     :param elevation: Point's elevation
     :param latitude: Point's latitude
     :param longitude: Point's longitudes
-    :return: Return the corresponding x y z coordinates.
+    :return: Return the corresponding vtk point.
     """
 
     cartesian = vtk.vtkTransform()
@@ -66,8 +46,7 @@ def convert_rt90_wgs84(x, y):
     return convert_rt90_wgs84.transformer.transform(y, x)
 
 
-# Attribute of convertRT90ToWGS84 function to make coordinates conversion used in
-# https://pyproj4.github.io/pyproj/stable/gotchas.html#upgrading-to-pyproj-2-from-pyproj-1
+# Attribute of convertRT90ToWGS84 function to make coordinates conversion.
 convert_rt90_wgs84.transformer = Transformer.from_crs('epsg:3021', 'epsg:4326')
 
 
