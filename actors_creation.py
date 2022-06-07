@@ -16,6 +16,7 @@ import numpy as np
 from pyproj import Transformer
 import vtk
 
+
 def to_vtkPoint(elevation, latitude, longitude):
     """
     Converts a geographical coordinate into a vtk point.
@@ -136,16 +137,24 @@ def make_terrain():
     texture_coordinates_float_array = vtk.vtkFloatArray()
     texture_coordinates_float_array.SetNumberOfComponents(2)
 
-    rows = 0
-    cols = 0
+    rows = 0  # Number of inserted rows
+    cols = 0  # Number of inserted columns
 
+    # For each latitude, is it in the bounding box of the map to display?
     for i, row in enumerate(elevations):
         if smallest_latitude <= latitudes[i] <= biggest_latitude:
             rows += 1
+            # For each longitude, is it in the bounding box of the map to display?
             for j, altitude in enumerate(row):
                 if smallest_longitude <= longitudes[j] <= biggest_longitude:
+
+                    # We increase number of columns ony for one row since they have all the
+                    # same amount of columns.
                     if rows == 1:
                         cols += 1
+
+                    # At this point, the lat, long pair is inside the bouding box of the zone to display
+                    # so we add it to the structured grid.
                     xyz_points.InsertNextPoint(to_vtkPoint(altitude, latitudes[i], longitudes[j]))
                     elevation_points.InsertNextValue(altitude)
                     texture_coordinates_float_array.InsertNextTuple(
