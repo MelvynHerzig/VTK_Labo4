@@ -102,6 +102,27 @@ def extract_datas(lat_start, lat_end, lon_start, lon_end, nb_rows, nb_cols, bil_
 
     return elevations, latitudes_vector, longitudes_vector
 
+def clipping_plane(wgs84_1, wgs84_2):
+    """
+    Compute a plane that pass through (0,0,0), wgs84_1 and wgs84_2.
+    :param wgs84_1: WGS84 coordinate number 1 to cut through.
+    :param wgs84_2: WGS84 coordinate number 2 to cut through.
+    :return: Return the resulting vtkPlane.
+    """
+
+    # Get x,y,z positions of the two points.
+    p1 = np.array(to_vtkPoint(1, wgs84_1[0], wgs84_1[1]))
+    p2 = np.array(to_vtkPoint(1, wgs84_2[0], wgs84_2[1]))
+
+    # Compute normal for plane orientation
+    n = np.cross(p1, p2)
+
+    # PLane creation
+    plane = vtk.vtkPlane()
+    plane.SetNormal(n)
+
+    return plane
+
 
 def extract_plane_datas(filename):
     with open(filename) as file:
@@ -171,23 +192,39 @@ def make_terrain_actor():
                     # so we add it to the structured grid.
                     xyz_points.InsertNextPoint(to_vtkPoint(altitude, latitudes[i], longitudes[j]))
                     elevation_points.InsertNextValue(altitude)
-                    texture_coordinates_float_array.InsertNextTuple(
-                        quadrilateral_interpolation(latitudes[i],
-                                                    longitudes[j],
-                                                    INTERPOLATION_ALPHAS,
-                                                    INTERPOLATION_BETAS)
-                    )
 
+                    l, m = quadrilateral_interpolation(latitudes[i],
+                                                       longitudes[j],
+                                                       INTERPOLATION_ALPHAS,
+                                                       INTERPOLATION_BETAS)
+
+                    texture_coordinates_float_array.InsertNextTuple((l, m))
+
+    # Preparing structured grid
     terrain_grid = vtk.vtkStructuredGrid()
     terrain_grid.SetDimensions(cols, rows, 1)
     terrain_grid.SetPoints(xyz_points)
     terrain_grid.GetPointData().SetScalars(elevation_points)
     terrain_grid.GetPointData().SetTCoords(texture_coordinates_float_array)
 
+    # Making union boolean implicit function to cut borders.
+    terrain_implicit_boolean = vtk.vtkImplicitBoolean()
+    terrain_implicit_boolean.SetOperationTypeToUnion()
+    terrain_implicit_boolean.AddFunction(clipping_plane(WSG84_CORNERS[0], WSG84_CORNERS[1]))
+    terrain_implicit_boolean.AddFunction(clipping_plane(WSG84_CORNERS[1], WSG84_CORNERS[2]))
+    terrain_implicit_boolean.AddFunction(clipping_plane(WSG84_CORNERS[2], WSG84_CORNERS[3]))
+    terrain_implicit_boolean.AddFunction(clipping_plane(WSG84_CORNERS[3], WSG84_CORNERS[0]))
+
+    terrain_clipped = vtk.vtkClipDataSet()
+    terrain_clipped.SetInputData(terrain_grid)
+    terrain_clipped.SetClipFunction(terrain_implicit_boolean)
+    terrain_clipped.Update()
+
     terrain_mapper = vtk.vtkDataSetMapper()
-    terrain_mapper.SetInputData(terrain_grid)
+    terrain_mapper.SetInputConnection(terrain_clipped.GetOutputPort())
     terrain_mapper.ScalarVisibilityOff()
 
+    # Loading texture
     jpeg_reader = vtk.vtkJPEGReader()
     jpeg_reader.SetFileName("glider_map.jpg")
     terrain_texture = vtk.vtkTexture()
