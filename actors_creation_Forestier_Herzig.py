@@ -82,13 +82,13 @@ def extract_terrain_data(lat_start, lat_end, lon_start, lon_end, nb_rows, nb_col
     :param lat_end: Ending latitude.
     :param lon_start: Starting longitudes.
     :param lon_end: Ending longitudes.
-    :param nb_rows: Row count when resizing the elevations array into 2d.
-    :param nb_cols: Column count when resizing the elevations array into 2d.
+    :param nb_rows: Row count when resizing the altitudes array into 2d.
+    :param nb_cols: Column count when resizing the altitudes array into 2d.
     :param bil_file: bil file name.
     :return: Returns the 2d array of altitudes, the vector of latitudes and the vector of longitudes.
     """
 
-    # Gets the elevations from the bil file as a big array from 6000 * 6000 altitudes.
+    # Gets the altitudes from the bil file as a big array from 6000 * 6000 altitudes.
     altitudes = np.fromfile(bil_file, dtype=np.int16).reshape((nb_rows, nb_cols))
 
     # Making the latitudes and longitudes vectors in regard to the starting and
@@ -257,7 +257,7 @@ def make_terrain_actor():
 
 def make_glider_path_actor():
     """
-    This function create the plane gps path actor
+    This function creates the glider gps path actor
     :return: Return the corresponding vtkActor
     """
 
