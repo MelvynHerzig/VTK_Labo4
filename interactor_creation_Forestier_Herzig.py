@@ -77,7 +77,7 @@ class TerrainInteractorStyle(vtk.vtkInteractorStyleTrackballCamera):
             self.cutter.Update()
 
             # Update the content from the text actor.
-            self.altitude_text_actor.SetInput("altitude: " + str(altitude) + "m")
+            self.altitude_text_actor.SetInput("Altitude: " + str(altitude) + "m")
 
             # In case the curves where hidden, set visibility to on.
             self.altitude_curve_actor.VisibilityOn()
