@@ -1,6 +1,6 @@
 # Labo 4 from VTK.
 #
-# Goal of the file: This file list some constants used by the actors creation and interactor
+# Goal of the file: This file lists some constants used by the actors creation or interactor
 #                   creation file.
 #
 # Authors: Forestier Quentin & Herzig Melvyn
@@ -50,7 +50,7 @@ GLIDER_MEASURES_FILENAME = "vtkgps.txt"
 # -                                   Earth                                      -
 # --------------------------------------------------------------------------------
 
-# Radius of the earth in km to cut the terrain and compute point position.
+# Radius of the earth in km to cut the terrain or to compute point position.
 EARTH_RADIUS = 6_371_009
 
 # --------------------------------------------------------------------------------

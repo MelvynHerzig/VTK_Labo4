@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-#
 # Labo 4 from VTK.
 #
 # File goal: This file aims to provide functions to generate the terrain and the glider path.
@@ -18,28 +16,28 @@ import constants_Forestier_Herzig as constants
 import vtk
 
 
-def to_vtk_point(elevation, latitude, longitude):
+def to_vtk_point(altitude, latitude, longitude):
     """
-    Converts a geographical coordinate into a vtk point.
-    :param elevation: Point's elevation
+    Convert a geographical coordinate into a vtk point.
+    :param altitude: Point's altitude
     :param latitude: Point's latitude
     :param longitude: Point's longitude
     :return: Return the corresponding vtk point.
     """
 
-    cartesian = vtk.vtkTransform()
-    cartesian.RotateY(longitude)
-    cartesian.RotateX(-latitude)
-    cartesian.Translate(0, 0, constants.EARTH_RADIUS + elevation)
+    coordinate_transform = vtk.vtkTransform()
+    coordinate_transform.RotateY(longitude)
+    coordinate_transform.RotateX(-latitude)
+    coordinate_transform.Translate(0, 0, constants.EARTH_RADIUS + altitude)
 
-    return cartesian.TransformPoint(0, 0, 0)
+    return coordinate_transform.TransformPoint(0, 0, 0)
 
 
 def convert_rt90_wgs84(x, y):
     """
-    Converts an RT90 (swedish) coordinate into WGS84 coordinate.
-    :param x: First coordinate (x)
-    :param y: Second coordinate (y)
+    Convert an RT90 (swedish) coordinate into WGS84 coordinate.
+    :param x: First part of the coordinate
+    :param y: Second part of the coordinate
     :return: Return the resulting conversion.
     """
     return convert_rt90_wgs84.transformer.transform(y, x)
@@ -51,7 +49,7 @@ convert_rt90_wgs84.transformer = Transformer.from_crs('epsg:3021', 'epsg:4326')
 
 def quadrilateral_interpolation(x, y, a, b):
     """
-    Gets a quadrilateral interpolation: converts physical (x,y) to logical (l,m).
+    Get a quadrilateral interpolation: converts physical (x,y) to logical (l,m).
     Source: https://www.particleincell.com/2012/quad-interpolation/
     :param x: Position x
     :param y: Position y
@@ -77,9 +75,9 @@ def quadrilateral_interpolation(x, y, a, b):
 
 def extract_terrain_data(lat_start, lat_end, lon_start, lon_end, nb_rows, nb_cols, bil_file):
     """
-    Extracts the elevations from the bil file in argument. Reshape it into 2d in regard to nb_row and nb_col. Finally,
+    Extract the altitudes from the bil file in argument. Reshape it into 2d in regard to nb_rows and nb_cols. Finally,
     produces the latitudes and longitudes as vector that correspond to the latitudes and longitudes associated to
-    2d array of elevations.
+    2d array of altitudes.
     :param lat_start: Starting latitude.
     :param lat_end: Ending latitude.
     :param lon_start: Starting longitudes.
@@ -87,31 +85,31 @@ def extract_terrain_data(lat_start, lat_end, lon_start, lon_end, nb_rows, nb_col
     :param nb_rows: Row count when resizing the elevations array into 2d.
     :param nb_cols: Column count when resizing the elevations array into 2d.
     :param bil_file: bil file name.
-    :return: Returns the 2d array of elevations, the vector of latitudes and the vector of longitudes.
+    :return: Returns the 2d array of altitudes, the vector of latitudes and the vector of longitudes.
     """
 
-    # Gets the elevations from the bil file as a big array from 6000 * 6000 elevations.
-    elevations = np.fromfile(bil_file, dtype=np.int16).reshape((nb_rows, nb_cols))
+    # Gets the elevations from the bil file as a big array from 6000 * 6000 altitudes.
+    altitudes = np.fromfile(bil_file, dtype=np.int16).reshape((nb_rows, nb_cols))
 
     # Making the latitudes and longitudes vectors in regard to the starting and
     # ending (latitudes and longitudes) with the number of division (nb_rows, nb_cols).
     latitudes_vector = np.linspace(lat_end, lat_start, nb_rows)
     longitudes_vector = np.linspace(lon_start, lon_end, nb_cols)
 
-    return elevations, latitudes_vector, longitudes_vector
+    return altitudes, latitudes_vector, longitudes_vector
 
 
 def clipping_plane(wgs84_1, wgs84_2):
     """
-    Compute a plane that pass through (0,0,0), wgs84_1 and wgs84_2.
-    :param wgs84_1: WGS84 coordinate number 1 to cut through.
-    :param wgs84_2: WGS84 coordinate number 2 to cut through.
+    Compute a plane that passes through (0,0,0), wgs84_1 and wgs84_2.
+    :param wgs84_1: WGS84 coordinate number 1 to pass through.
+    :param wgs84_2: WGS84 coordinate number 2 to pass through.
     :return: Return the resulting vtkPlane.
     """
 
-    # Get x,y,z positions of the two points.
-    p1 = np.array(to_vtk_point(1, wgs84_1[0], wgs84_1[1]))
-    p2 = np.array(to_vtk_point(1, wgs84_2[0], wgs84_2[1]))
+    # Get x,y,z positions of the two additional points.
+    p1 = np.array(to_vtk_point(10, wgs84_1[0], wgs84_1[1]))
+    p2 = np.array(to_vtk_point(10, wgs84_2[0], wgs84_2[1]))
 
     # Compute normal for plane orientation
     n = np.cross(p1, p2)
@@ -145,12 +143,12 @@ def extract_glider_data(filename):
 
 def make_terrain_actor():
     """
-    This function create the terrain actor that is around the lake of Ottsjön.
+    This function created the terrain actor that is around the lake of Ottsjön.
     :return: Returns the corresponding vtkActor.
     """
 
     # WSG84 map corners: 0:  bottom left, 1: bottom right, 2: top right, 3: top left
-    WSG84_CORNERS = np.array([
+    wsg84_corners = np.array([
         convert_rt90_wgs84(constants.AREA_BL[0], constants.AREA_BL[1]),
         convert_rt90_wgs84(constants.AREA_BR[0], constants.AREA_BR[1]),
         convert_rt90_wgs84(constants.AREA_TR[0], constants.AREA_TR[1]),
@@ -159,19 +157,19 @@ def make_terrain_actor():
 
     # Matrix for quadrilateral interpolation
     # https://www.particleincell.com/2012/quad-interpolation/
-    INTERPOLATION_MATRIX = np.array([[1, 0, 0, 0], [-1, 1, 0, 0], [-1, 0, 0, 1], [1, -1, 1, -1]])
+    interpolation_matrix = np.array([[1, 0, 0, 0], [-1, 1, 0, 0], [-1, 0, 0, 1], [1, -1, 1, -1]])
 
-    # Matrix multiplication to get alphas and betas of quadrilateral interpolation
-    INTERPOLATION_ALPHAS = INTERPOLATION_MATRIX.dot(WSG84_CORNERS[:, 0])
-    INTERPOLATION_BETAS = INTERPOLATION_MATRIX.dot(WSG84_CORNERS[:, 1])
+    # Matrix multiplication to get alphas and betas for quadrilateral interpolation
+    interpolation_alphas = interpolation_matrix.dot(wsg84_corners[:, 0])
+    interpolation_betas = interpolation_matrix.dot(wsg84_corners[:, 1])
 
-    # Limits to get the bounding box of the map area.
-    smallest_latitude = WSG84_CORNERS[:, 0].min()
-    biggest_latitude = WSG84_CORNERS[:, 0].max()
-    smallest_longitude = WSG84_CORNERS[:, 1].min()
-    biggest_longitude = WSG84_CORNERS[:, 1].max()
+    # Limits to get the bounding box of the map area to display.
+    smallest_latitude = wsg84_corners[:, 0].min()  # Bottom most
+    biggest_latitude = wsg84_corners[:, 0].max()  # Top most
+    smallest_longitude = wsg84_corners[:, 1].min()  # Left most
+    biggest_longitude = wsg84_corners[:, 1].max()  # Right most
 
-    elevations, latitudes, longitudes = extract_terrain_data(
+    altitudes, latitudes, longitudes = extract_terrain_data(
         constants.BIL_LAT_START,
         constants.BIL_LAT_END,
         constants.BIL_LON_START,
@@ -182,17 +180,17 @@ def make_terrain_actor():
 
     # Coordinates of the points in the bounding box of the area to display
     xyz_points = vtk.vtkPoints()
-    # Elevation of the points in the bounding box of the area to display
+    # Altitude of the points in the bounding box of the area to display
     altitude_points = vtk.vtkIntArray()
     # Texture coordinates of the points in the bounding box of the area to display
-    texture_coordinates_float_array = vtk.vtkFloatArray()
-    texture_coordinates_float_array.SetNumberOfComponents(2)
+    texture_coordinates = vtk.vtkFloatArray()
+    texture_coordinates.SetNumberOfComponents(2)
 
     rows = 0  # Number of inserted rows in the bounding box
     cols = 0  # Number of inserted columns in the bounding box
 
     # For each latitude, is it in the bounding box of the area to display?
-    for i, row in enumerate(elevations):
+    for i, row in enumerate(altitudes):
         if smallest_latitude <= latitudes[i] <= biggest_latitude:
             rows += 1
             # For each longitude, is it in the bounding box of the area to display?
@@ -204,33 +202,36 @@ def make_terrain_actor():
                     if rows == 1:
                         cols += 1
 
-                    # At this point, the lat, long pair is inside the bounding box of the zone to display,
+                    # At this point, the lat, long pair is inside the bounding box of the area to display,
                     # so we add it to the structured grid.
                     xyz_points.InsertNextPoint(to_vtk_point(altitude, latitudes[i], longitudes[j]))
                     altitude_points.InsertNextValue(altitude)
 
                     l, m = quadrilateral_interpolation(latitudes[i],
                                                        longitudes[j],
-                                                       INTERPOLATION_ALPHAS,
-                                                       INTERPOLATION_BETAS)
+                                                       interpolation_alphas,
+                                                       interpolation_betas)
 
-                    texture_coordinates_float_array.InsertNextTuple((l, m))
+                    texture_coordinates.InsertNextTuple((l, m))
 
     # Preparing structured grid to display the area
     terrain_grid = vtk.vtkStructuredGrid()
     terrain_grid.SetDimensions(cols, rows, 1)
     terrain_grid.SetPoints(xyz_points)
     terrain_grid.GetPointData().SetScalars(altitude_points)
-    terrain_grid.GetPointData().SetTCoords(texture_coordinates_float_array)
+    terrain_grid.GetPointData().SetTCoords(texture_coordinates)
 
     # Making union boolean implicit function to cut exact borders of the area to display
+    # In order to cut the bounding box to match the area to display, we create planes that
+    # go through each edge.
     terrain_implicit_boolean = vtk.vtkImplicitBoolean()
     terrain_implicit_boolean.SetOperationTypeToUnion()
-    terrain_implicit_boolean.AddFunction(clipping_plane(WSG84_CORNERS[0], WSG84_CORNERS[1]))
-    terrain_implicit_boolean.AddFunction(clipping_plane(WSG84_CORNERS[1], WSG84_CORNERS[2]))
-    terrain_implicit_boolean.AddFunction(clipping_plane(WSG84_CORNERS[2], WSG84_CORNERS[3]))
-    terrain_implicit_boolean.AddFunction(clipping_plane(WSG84_CORNERS[3], WSG84_CORNERS[0]))
+    terrain_implicit_boolean.AddFunction(clipping_plane(wsg84_corners[0], wsg84_corners[1]))
+    terrain_implicit_boolean.AddFunction(clipping_plane(wsg84_corners[1], wsg84_corners[2]))
+    terrain_implicit_boolean.AddFunction(clipping_plane(wsg84_corners[2], wsg84_corners[3]))
+    terrain_implicit_boolean.AddFunction(clipping_plane(wsg84_corners[3], wsg84_corners[0]))
 
+    # Clipped terrain
     terrain_clipped = vtk.vtkClipDataSet()
     terrain_clipped.SetInputData(terrain_grid)
     terrain_clipped.SetClipFunction(terrain_implicit_boolean)
@@ -246,6 +247,7 @@ def make_terrain_actor():
     terrain_texture = vtk.vtkTexture()
     terrain_texture.SetInputConnection(jpeg_reader.GetOutputPort())
 
+    # Terrain actor
     terrain_actor = vtk.vtkActor()
     terrain_actor.SetMapper(terrain_mapper)
     terrain_actor.SetTexture(terrain_texture)
@@ -258,34 +260,42 @@ def make_glider_path_actor():
     This function create the plane gps path actor
     :return: Return the corresponding vtkActor
     """
+
+    # Retrieving coordinates from file.
     coords = extract_glider_data(constants.GLIDER_MEASURES_FILENAME)
+
+    # Points that will be used to form the "tube".
     path_points = vtk.vtkPoints()
 
-    delta_elevations = vtk.vtkFloatArray()
+    # Array to store the altitude delta between points.
+    # That allows to color the "tube" accordingly to the difference with the
+    # previous point.
+    delta_altitudes = vtk.vtkFloatArray()
 
     last_elev = coords[0][2]
 
-    for i, (x, y, elev) in enumerate(coords):
-        lat, long = convert_rt90_wgs84(x, y)
-        path_points.InsertNextPoint(to_vtk_point(elev, lat, long))
+    for i, (x, y, altitude) in enumerate(coords):
+        lat, long = convert_rt90_wgs84(x, y)  # Convert from rt90 to wsg84.
 
-        delta_elevations.InsertNextValue(last_elev - elev)
-        last_elev = elev
+        path_points.InsertNextPoint(to_vtk_point(altitude, lat, long))  # Insert point position.
+        delta_altitudes.InsertNextValue(last_elev - altitude)  # Insert point altitude delta
 
+        last_elev = altitude
+
+    # Making lines out of the measures
     path_lines = vtk.vtkLineSource()
-
     path_lines.SetPoints(path_points)
     path_lines.Update()
 
-    # Settings scalars to the generated polydata
-    polydata = path_lines.GetOutput()
-    polydata.GetPointData().SetScalars(delta_elevations)
+    # Setting altitudes.
+    path_lines.GetOutput().GetPointData().SetScalars(delta_altitudes)
 
-    # To have something nice to display
+    # Making the lines thicker with tube filter.
     tube = vtk.vtkTubeFilter()
     tube.SetRadius(25)
     tube.SetInputConnection(path_lines.GetOutputPort())
 
+    # Mapping and actor creation.
     mapper = vtk.vtkPolyDataMapper()
     mapper.SetInputConnection(tube.GetOutputPort())
     mapper.SetScalarRange((-5, 5))
@@ -299,6 +309,7 @@ def make_glider_path_actor():
 def make_altitude_text_actor():
     """
     Creates the text actor that will display the intersected altitude.
+    We set a white background to make it easy to read even on top of the map.
     :return: A text actor.
     """
     altitude_actor = vtk.vtkTextActor()
@@ -306,8 +317,7 @@ def make_altitude_text_actor():
     altitude_actor.GetTextProperty().SetBackgroundColor(1, 1, 1)
     altitude_actor.GetTextProperty().SetBackgroundOpacity(1)
     altitude_actor.SetInput("")
-    altitude_actor.GetTextProperty().SetFontSize(24)
-    altitude_actor.SetPosition((20, 20))
+    altitude_actor.GetTextProperty().SetFontSize(20)
+    altitude_actor.SetPosition((40, 40))
 
     return altitude_actor
-

@@ -2,7 +2,7 @@
 #
 # Labo 4 from VTK.
 #
-# Goal of this file: The goal of this laboratory is to visualize the path of a glider taking off
+# Goal of this file: The goal of this laboratory (and file) is to visualize the path of a glider taking off
 #                    from the frozen lake of Ottsjön in Sweden. The flight of this glider will also
 #                    allow us to visualize the ascending and descending airflow under the influence
 #                    of the surrounding mountain relief.
