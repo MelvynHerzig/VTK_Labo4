@@ -14,6 +14,7 @@
 import math
 import numpy as np
 from pyproj import Transformer
+from constants_Forestier_Herzig import EARTH_RADIUS
 import vtk
 
 
@@ -29,12 +30,9 @@ def to_vtkPoint(elevation, latitude, longitude):
     cartesian = vtk.vtkTransform()
     cartesian.RotateY(longitude)
     cartesian.RotateX(-latitude)
-    cartesian.Translate(0, 0, to_vtkPoint.earth_radius + elevation)
+    cartesian.Translate(0, 0, EARTH_RADIUS + elevation)
 
     return cartesian.TransformPoint(0, 0, 0)
-
-
-to_vtkPoint.earth_radius = 6_371_009
 
 
 def convert_rt90_wgs84(x, y):
@@ -288,114 +286,11 @@ def make_glider_path_actor():
 def make_altitude_text_actor():
     altitude_actor = vtk.vtkTextActor()
     altitude_actor.GetTextProperty().SetColor(0, 0, 0)
+    altitude_actor.GetTextProperty().SetBackgroundColor(1, 1, 1)
+    altitude_actor.GetTextProperty().SetBackgroundOpacity(1)
     altitude_actor.SetInput("")
     altitude_actor.GetTextProperty().SetFontSize(24)
     altitude_actor.SetPosition((20, 20))
 
     return altitude_actor
 
-
-class TerrainInteractorStyle(vtk.vtkInteractorStyleTrackballCamera):
-    """
-    Create a custom interactor that detects the mouse position to cut the terrain (terrain_actor) and displays
-    an altitude curve. It also displays the numeric altitude into the altitude_actor.
-    """
-
-    def __init__(self, terrain_actor, altitude_actor, renderer):
-        # Function to trigger when the mouse move.
-        self.AddObserver("MouseMoveEvent", self.mouse_move_event)
-
-        # Actors to work with.
-        self.terrain_actor = terrain_actor  # Terrain tu cut
-        self.altitude_actor = altitude_actor  # Text to update
-
-        # Sphere that will be sized to earth radius + altitude intercepted in order to cut the terrain.
-        self.sphere = vtk.vtkSphere()
-
-        # Cutter that will use a sphere to cut the terrain.
-        self.cutter = vtk.vtkCutter()
-        self.cutter.SetCutFunction(self.sphere)
-        self.cutter.SetInputData(self.terrain_actor.GetMapper().GetInput())
-
-        # The cut data will be transformed into strips.
-        self.stripper = vtk.vtkStripper()
-        self.stripper.SetInputConnection(self.cutter.GetOutputPort())
-
-        # And finally the altitude strips are joint into tubes.
-        self.tube_filter = vtk.vtkTubeFilter()
-        self.tube_filter.SetRadius(40)
-        self.tube_filter.SetInputConnection(self.stripper.GetOutputPort())
-
-        # Altitude curve actor that wil display the altitude curve made out of the cut
-        self.elevation_curve_data_set_mapper = vtk.vtkDataSetMapper()
-        self.elevation_curve_data_set_mapper.SetInputConnection(self.tube_filter.GetOutputPort())
-
-        self.elevation_curve_actor = vtk.vtkActor()
-        self.elevation_curve_actor.SetMapper(self.elevation_curve_data_set_mapper)
-
-        # Picker
-        self.point_picker = vtk.vtkPointPicker()
-        self.point_picker.PickFromListOn()
-        self.point_picker.AddPickList(self.terrain_actor)
-
-        # Placing into the renderer
-        self.SetDefaultRenderer(renderer)
-        renderer.AddActor(self.elevation_curve_actor)
-
-    def mouse_move_event(self, obj, event):
-
-        # Get the selected actor
-        mousePos = self.GetInteractor().GetEventPosition()
-        self.point_picker.Pick(mousePos[0], mousePos[1], 0, self.GetDefaultRenderer())
-        picked_actor = self.point_picker.GetActor()
-
-        # If we selected the terrain
-        if picked_actor:
-
-            # Retrieving altitude
-            altitude = self.point_picker.GetDataSet().GetPointData().GetScalars().GetValue(self.point_picker.GetPointId())
-
-            # Update elevation in the cut function
-            self.sphere.SetRadius(to_vtkPoint.earth_radius + altitude)
-            self.cutter.Update()
-
-            # Update elevation label
-            self.altitude_actor.SetInput("altitude: " + str(altitude) + "m")
-
-            self.altitude_actor.VisibilityOn()
-            self.elevation_curve_actor.VisibilityOn()
-        else:
-            self.elevation_curve_actor.VisibilityOff()
-            self.altitude_actor.SetInput("")
-
-        self.GetInteractor().Render()
-        self.OnMouseMove()
-
-
-# --------- Actors ---------
-terrain_actor = make_terrain_actor()
-glider_path_actor = make_glider_path_actor()
-altitude_text_actor = make_altitude_text_actor()
-
-# --------- Render ---------
-renderer = vtk.vtkRenderer()
-renderer.AddActor(terrain_actor)
-renderer.AddActor(glider_path_actor)
-renderer.AddActor(altitude_text_actor)
-renderer.SetBackground(1, 1, 1)
-
-renWin = vtk.vtkRenderWindow()
-renWin.AddRenderer(renderer)
-renWin.SetSize(800, 800)
-
-# --------- Interactor ---------
-intWin = vtk.vtkRenderWindowInteractor()
-intWin.SetRenderWindow(renWin)
-
-style = TerrainInteractorStyle(terrain_actor, altitude_text_actor, renderer)
-intWin.SetInteractorStyle(style)
-
-# --------- Print image ---------
-intWin.Initialize()
-renWin.Render()
-intWin.Start()
