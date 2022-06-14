@@ -77,7 +77,7 @@ def quadrilateral_interpolation(x, y, a, b):
     return l, m
 
 
-def extract_datas(lat_start, lat_end, lon_start, lon_end, nb_rows, nb_cols, bil_file):
+def extract_terrain_data(lat_start, lat_end, lon_start, lon_end, nb_rows, nb_cols, bil_file):
     """
     Extracts the elevations from the bil file in argument. Reshape it into 2d in regard to nb_row and nb_col. Finally,
     produces the latitudes and longitudes as vector that correspond to the latitudes and longitudes associated to
@@ -124,22 +124,26 @@ def clipping_plane(wgs84_1, wgs84_2):
     return plane
 
 
-def extract_plane_datas(filename):
+def extract_glider_data(filename):
+    """
+    Extract datas from the glider path file.
+    :param filename: Name of the file with glider data.
+    :return: An array with the list x y z of each measure.
+    """
     with open(filename) as file:
-        nb_coords = int(file.readline())
-
+        file.readline()
         coordinates = []
 
         for line in file.readlines():
             coords = line.split()
             coordinates.append((int(coords[1]), int(coords[2]), float(coords[3])))
 
-    return int(nb_coords), coordinates
+    return coordinates
 
 
 def make_terrain_actor():
     """
-    This function create the terrain actor. The are around the lake of Ottsjön.
+    This function create the terrain actor that is around the lake of Ottsjön.
     :return: Returns the corresponding vtkActor.
     """
 
@@ -165,7 +169,7 @@ def make_terrain_actor():
     smallest_longitude = WSG84_CORNERS[:, 1].min()
     biggest_longitude = WSG84_CORNERS[:, 1].max()
 
-    elevations, latitudes, longitudes = extract_datas(60, 65, 10, 15, 6000, 6000, "EarthEnv-DEM90_N60E010.bil")
+    elevations, latitudes, longitudes = extract_terrain_data(60, 65, 10, 15, 6000, 6000, "EarthEnv-DEM90_N60E010.bil")
 
     xyz_points = vtk.vtkPoints()
     elevation_points = vtk.vtkIntArray()
@@ -237,12 +241,12 @@ def make_terrain_actor():
     return terrain_actor
 
 
-def make_plane_path_actor():
+def make_glider_path_actor():
     """
     This function create the plane gps path actor
     :return: Return the corresponding vtkActor
     """
-    nb_coords, coords = extract_plane_datas('vtkgps.txt')
+    coords = extract_glider_data('vtkgps.txt')
     path_points = vtk.vtkPoints()
 
     delta_elevations = vtk.vtkFloatArray()
@@ -285,7 +289,7 @@ def make_plane_path_actor():
 # --------- Render ---------
 renderer = vtk.vtkRenderer()
 renderer.AddActor(make_terrain_actor())
-renderer.AddActor(make_plane_path_actor())
+renderer.AddActor(make_glider_path_actor())
 
 
 renWin = vtk.vtkRenderWindow()
