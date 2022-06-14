@@ -8,7 +8,46 @@
 # Date: 14.06.2022
 
 # --------------------------------------------------------------------------------
-# -                                 Measures                                     -
+# -                                    Bil                                       -
+# --------------------------------------------------------------------------------
+
+# File name
+BIL_NAME = "EarthEnv-DEM90_N60E010.bil"
+
+# Latitudes exposed
+BIL_LAT_START = 60
+BIL_LAT_END = 65
+
+# Longitudes exposed
+BIL_LON_START = 10
+BIL_LON_END = 15
+
+# Sizes (amount of measures)
+BIL_WIDTH = 6000
+BIL_HEIGHT = 6000
+
+# --------------------------------------------------------------------------------
+# -                                Area to display                               -
+# --------------------------------------------------------------------------------
+
+# Corners of the area to display (in RT90)
+AREA_BL = [1349602, 7005969]
+AREA_BR = [1371835, 7006362]
+AREA_TR = [1371573, 7022967]
+AREA_TL = [1349340, 7022573]
+
+# File name of the texture
+AREA_TEXTURE_NAME = "glider_map.jpg"
+
+# --------------------------------------------------------------------------------
+# -                                    Glider                                    -
+# --------------------------------------------------------------------------------
+
+# File name that contains the glider measures.
+GLIDER_MEASURES_FILENAME = "vtkgps.txt"
+
+# --------------------------------------------------------------------------------
+# -                                   Earth                                      -
 # --------------------------------------------------------------------------------
 
 # Radius of the earth in km to cut the terrain and compute point position.

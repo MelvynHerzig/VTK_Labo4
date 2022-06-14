@@ -62,14 +62,14 @@ class TerrainInteractorStyle(vtk.vtkInteractorStyleTrackballCamera):
     def mouse_move_event(self, obj, event):
 
         # Get the selected actor
-        mousePos = self.GetInteractor().GetEventPosition()
-        self.point_picker.Pick(mousePos[0], mousePos[1], 0, self.GetDefaultRenderer())
+        mouse_pos = self.GetInteractor().GetEventPosition()
+        self.point_picker.Pick(mouse_pos[0], mouse_pos[1], 0, self.GetDefaultRenderer())
         picked_actor = self.point_picker.GetActor()
 
         # If we have selected an actor (since we have only one actor, it's the terrain)
         if picked_actor:
 
-            # Retrieving altitude
+            # Retrieving altitude.
             altitude = self.point_picker.GetDataSet().GetPointData().GetScalars().GetValue(self.point_picker.GetPointId())
 
             # Update the sphere radius to cut at the corresponding altitude.
@@ -79,7 +79,7 @@ class TerrainInteractorStyle(vtk.vtkInteractorStyleTrackballCamera):
             # Update the content from the text actor.
             self.altitude_text_actor.SetInput("altitude: " + str(altitude) + "m")
 
-            # In case the curves where hidden, set visibility to on
+            # In case the curves where hidden, set visibility to on.
             self.altitude_curve_actor.VisibilityOn()
 
         # No actor intercepted, we must hide the elements.

@@ -17,30 +17,30 @@ import interactor_creation_Forestier_Herzig as customInteractor
 import constants_Forestier_Herzig as constants
 
 
-# --------- Actors ---------
+# --------- Actors creation ---------
 terrain_actor = actorCreation.make_terrain_actor()
 glider_path_actor = actorCreation.make_glider_path_actor()
 altitude_text_actor = actorCreation.make_altitude_text_actor()
 
-# --------- Render ---------
+# --------- Rendering ---------
 renderer = vtk.vtkRenderer()
 renderer.AddActor(terrain_actor)
 renderer.AddActor(glider_path_actor)
 renderer.AddActor(altitude_text_actor)
 renderer.SetBackground(constants.WHITE)
 
-renWin = vtk.vtkRenderWindow()
-renWin.AddRenderer(renderer)
-renWin.SetSize(constants.WINDOW_SIZE)
+render_window = vtk.vtkRenderWindow()
+render_window.AddRenderer(renderer)
+render_window.SetSize(constants.WINDOW_SIZE)
 
-# --------- Interactor ---------
-intWin = vtk.vtkRenderWindowInteractor()
-intWin.SetRenderWindow(renWin)
+# --------- Setting interactor ---------
+render_window_interactor = vtk.vtkRenderWindowInteractor()
+render_window_interactor.SetRenderWindow(render_window)
 
 style = customInteractor.TerrainInteractorStyle(terrain_actor, altitude_text_actor, renderer)
-intWin.SetInteractorStyle(style)
+render_window_interactor.SetInteractorStyle(style)
 
 # --------- Display ---------
-intWin.Initialize()
-renWin.Render()
-intWin.Start()
+render_window_interactor.Initialize()
+render_window.Render()
+render_window_interactor.Start()
